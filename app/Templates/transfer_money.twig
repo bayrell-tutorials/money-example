@@ -1,0 +1,50 @@
+{% extends "@app/layout.twig" %}
+
+{% block content %}
+
+
+<h1>Transfer money</h1>
+
+<form class="web_form" method="POST" enctype="multipart/form-data">
+	
+	<table>
+		<tr>
+			<td class="web_form__tr_left">Account from:</td>
+			<td class="web_form__tr_right">
+				<input class="web_form__input" name="account_from" value="{{ account_from }}" />
+			</td>
+		</tr>
+		<tr>
+			<td class="web_form__tr_left">Account to:</td>
+			<td class="web_form__tr_right">
+				<input class="web_form__input" name="account_to" value="{{ account_to }}" />
+			</td>
+		</tr>
+		<tr>
+			<td class="web_form__tr_left">Money:</td>
+			<td class="web_form__tr_right">
+				<input class="web_form__input" name="money" value="{{ money }}" />
+			</td>
+		</tr>
+		<tr>
+			<td class="web_form__tr_left">Description:</td>
+			<td class="web_form__tr_right">
+				<input class="web_form__input" name="description" value="{{ description }}" />
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2" class="web_form__buttons">
+				<button>Submit</button>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2" class="web_form__result {{ form_result_class }}">
+				{{ implode("\n", form_result) | nl2br }}
+			</td>
+		</tr>
+	</table>
+	
+</form>
+
+
+{% endblock %}

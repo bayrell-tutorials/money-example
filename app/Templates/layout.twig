@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" href="main.css?_{{ f_inc }}" type="text/css" media="screen" />
+
+{% block head %}
+{% endblock %}
+
+</head>
+
+{% block site_body %}
+<body>
+
+{% block page_container %}
+<section id="content" role="main" class="section page_container">
+	<div class="section__wrap">
+		{% block content %}{{ content | raw }}{% endblock %}
+	</div>
+</section>
+{% endblock %}
+
+</body>
+{% endblock %}
+
+</head>
+</html>
