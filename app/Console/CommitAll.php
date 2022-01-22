@@ -25,74 +25,45 @@
  * SOFTWARE.
  */
 
-namespace App;
+namespace App\Console;
+
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use App\Models\Account;
 
 
-class Instance extends \TinyPHP\App
+class CommitAll extends Command
 {
+    protected static $defaultName = 'app:money:commit_all';
 	
-	/**
-	 * Init app
-	 */
-	public function init()
-	{
-		parent::init();
-		
-		/* Include routes */
-		$this->addRoute(\App\Routes\MoneyRoute::class);
-		
-		/* Includes models */
-		$this->addModel(\App\Models\Money::class);
-		$this->addModel(\App\Models\History::class);
+    protected function configure(): void
+    {
+        $this
+			// the short description
+			->setDescription('Commit balance for all accounts')
 
-		/* Includes console commands */
-		$this->addConsoleCommand(\App\Console\CommitAll::class);
-		$this->addConsoleCommand(\App\Console\UpdateBalance::class);
-		$this->addConsoleCommand(\App\Console\UpdateBalanceAll::class);
-	}
-	
-	
-	
-	/**
-	 * Console app created
-	 */
-	function consoleAppCreated()
+			// the full command description shown when running the command with
+			// the "--help" option
+			->setHelp('Commit all accounts')
+		;
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
 	{
-	}
-	
-	
-	
-	/**
-	 * 404 error
-	 */
-	function actionNotFound($container)
-	{
-		$container->render("@app/404.twig");
-		$container->response->setStatusCode(404);
-		return $container;
-	}
-	
-	
-	
-	/**
-	 * Method not allowed
-	 */
-	function actionNotAllowed($container)
-	{
-		$container->render("@app/405.twig");
-		$container->response->setStatusCode(405);
-		return $container;
-	}
-	
-	
-	
-	/**
-	 * Request before, after
-	 */
-	function request_before($container)
-	{
-		$container->addContext("f_inc", 1);
-	}
-	
-	function request_after($container){}
+		$cursor = Account::select()
+			->execute()
+		;
+		
+		while ($account = $cursor->fetch())
+		{
+			$output->writeln("Commit account balance: " . $account["account_number"]);
+			$account->commitBalance();
+		}
+		
+		$cursor->close();
+		
+        return Command::SUCCESS;
+    }
 }

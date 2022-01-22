@@ -27,6 +27,8 @@
 
 namespace App\Models;
 
+use \TinyPHP\Utils;
+
 
 class Account extends \TinyORM\Model
 {
@@ -69,7 +71,7 @@ class Account extends \TinyORM\Model
 	{
 		$data = parent::to_database($data);
 		
-		$data = \TinyPHP\Utils::object_intersect($data, [
+		$data = Utils::object_intersect($data, [
 			"id",
 			"user_id",
 			"account_number",
@@ -157,32 +159,48 @@ class Account extends \TinyORM\Model
 	
 	
 	/**
-	 * Обновление баланса
+	 * Получени остатка баланса на определенную дату
 	 */
-	function updateBalance()
+	function getBalance($gmtime_end = null)
 	{
 		/* Получаем значение последнего баланса и время его создания */
-		$balance = Balance::select()
+		$q = Balance::select()
 			->filter([
 				["account_id", "=", $this["id"]]
 			])
 			->orderBy("gmtime desc")
 			->limit(1)
-			->one()
 		;
+		
+		if ($gmtime_end != null)
+		{
+			$q->addFilter("gmtime", "<", $gmtime_end);
+		}
+		
+		//$q->debug(true);
+		
+		$balance = $q->one();
 		
 		$balance_value = $balance ? $balance->value : 0;
 		$balance_gmtime = $balance ? $balance->gmtime : "1970-01-01 00:00:00";
 		
 		/* Получаем историю всех транзакций с момента последнего баланса */
-		$cursor = History::select()
+		$q = History::select()
 			->filter([
 				["account_id", "=", $this["id"]],
 				["gmtime", ">=", $balance_gmtime]
 			])
 			->orderBy("gmtime asc")
-			->execute()
 		;
+		
+		if ($gmtime_end != null)
+		{
+			$q->addFilter("gmtime", "<", $gmtime_end);
+		}
+		
+		//$q->debug(true);
+		
+		$cursor = $q->execute();
 		
 		/* Проходим по каждой истории, начиная с balance_gmtime включительно и изменяем значение баланса */
 		while ($history = $cursor->fetch())
@@ -192,9 +210,52 @@ class Account extends \TinyORM\Model
 		
 		$cursor->close();
 		
+		return $balance_value;
+	}
+	
+	
+	
+	/**
+	 * Обновление баланса
+	 */
+	function updateBalance()
+	{
+		$balance_value = $this->getBalance();
+		
 		/* Обновление баланса */
 		$this->balance = $balance_value;
 		$this->save();
+	}
+	
+	
+	
+	/**
+	 * Коммит баланса
+	 */
+	function commitBalance()
+	{
+		$time = floor(time() / COMMIT_BALANCE) * COMMIT_BALANCE;
+		$gmtime = Utils::dbtime($time);
+		
+		/* Проверяем есть ли такой коммит */
+		$balance = Balance::select()
+			->filter([
+				["account_id", "=", $this["id"]],
+				["gmtime", "=", $gmtime],
+			])
+			->limit(1)
+			->one()
+		;
+		
+		if (!$balance)
+		{
+			$balance_value = $this->getBalance($gmtime);
+			$balance = new Balance();
+			$balance->account_id = $this["id"];
+			$balance->gmtime = $gmtime;
+			$balance->value = $balance_value;
+			$balance->save();
+		}
 	}
 	
 	

@@ -29,9 +29,11 @@ namespace App\Routes;
 
 
 use App\Models\Account;
+use App\Models\Balance;
 use App\Models\History;
 use App\Models\User;
 use App\Models\MoneyException;
+use TinyPHP\Utils;
 
 
 class MoneyRoute extends \TinyPHP\Route
@@ -59,22 +61,36 @@ class MoneyRoute extends \TinyPHP\Route
 		$routes->addRoute
 		(
 			['GET'],
-			'/accounts/{id}',
+			'/accounts/{id}/history',
 			[$this, "actionAccountHistory"]
 		);
 		
 		$routes->addRoute
 		(
-			['POST', 'GET'],
+			['GET'],
+			'/accounts/{id}/balance',
+			[$this, "actionAccountBalance"]
+		);
+		
+		$routes->addRoute
+		(
+			['GET', 'POST'],
 			'/add_money',
 			[$this, "actionAddMoney"]
 		);
 		
 		$routes->addRoute
 		(
-			['POST', 'GET'],
+			['GET', 'POST'],
 			'/transfer_money',
 			[$this, "actionTransferMoney"]
+		);
+		
+		$routes->addRoute
+		(
+			['GET', 'POST'],
+			'/commit',
+			[$this, "actionCommit"]
 		);
 	}
 	
@@ -104,7 +120,7 @@ class MoneyRoute extends \TinyPHP\Route
 			->all()
 		;
 		
-		$accounts = Account::listToArray( $accounts );
+		$accounts = Utils::listToArray( $accounts );
 		$container->addContext("accounts", $accounts);
 		
 		$container->render("@app/accounts.twig");
@@ -143,11 +159,44 @@ class MoneyRoute extends \TinyPHP\Route
 				->all()
 			;
 			
-			$history = History::listToArray( $history );
+			$history = Utils::listToArray( $history );
 			$container->addContext("history", $history);
 		}
 		
 		$container->render("@app/history.twig");
+	}
+	
+	
+	
+	/**
+	 * Action accounts
+	 */
+	function actionAccountBalance($container)
+	{
+		$id = $container->arg("id");
+		
+		$account = Account::getById($id);
+		$container->addContext("account", $account);
+		
+		if ($account)
+		{
+			$user = User::getById($account->user_id);
+			$container->addContext("user", $user);
+			
+			$balance = Balance::select()
+				->filter([
+					["account_id", "=", $id]
+				])
+				->orderBy("t.gmtime desc")
+				/*->debug(true)*/
+				->all()
+			;
+			
+			$balance = Balance::listToArray( $balance );
+			$container->addContext("balance", $balance);
+		}
+		
+		$container->render("@app/balance.twig");
 	}
 	
 	
@@ -275,4 +324,50 @@ class MoneyRoute extends \TinyPHP\Route
 		$container->render("@app/transfer_money.twig", $data);
 	}
 	
+	
+	
+	/**
+	 * Commit
+	 */
+	function actionCommit($container)
+	{
+		$account = $container->post("account");
+		
+		$data = [
+			"account" => $account,
+			"form_result" => [],
+			"form_result_class" => "",
+		];
+		
+		if ($container->isPost())
+		{
+			try
+				{
+					/* Проверяем аккаунт */
+					$account = Account::findByNumber($account);
+					if (!$account)
+					{
+						throw new MoneyException("Account not found", MoneyException::ACCOUNT_NOT_FOUND);
+					}
+					
+					/* Коммит баланса */
+					$account->commitBalance();
+					
+					$data["form_result_class"] = "web_form__result--success";
+					$data["form_result"][] = "Success";
+				}
+				catch (\PDOException $e)
+				{
+					$data["form_result_class"] = "web_form__result--error";
+					$data["form_result"][] = $e->getMessage();
+				}
+				catch (\App\Models\MoneyException $e)
+				{
+					$data["form_result_class"] = "web_form__result--error";
+					$data["form_result"][] = $e->getMessage();
+				}
+		}
+		
+		$container->render("@app/commit.twig", $data);
+	}
 }

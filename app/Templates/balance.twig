@@ -1,0 +1,52 @@
+{% extends "@app/layout.twig" %}
+
+{% block content %}
+
+<h1>Balance</h1>
+
+<a class="link" href="/accounts">Back</a>
+<br/>
+<br/>
+
+{% if account is not defined %}
+	
+	Account not found
+
+{% else %}
+
+User: {{ user.name }}<br/>
+Account number: {{ account.account_number }}<br/>
+<br/>
+<br/>
+
+<style>
+.accounts_table{
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+.accounts_table td, .accounts_table th{
+	border: 1px #ccc solid;
+	padding: 5px;
+	text-align: left;
+}
+.accounts_table tr th{
+	font-weight: bold;
+}
+</style>
+
+<table class="accounts_table">
+	<tr>
+		<th>GMTime</th>
+		<th>Balance</th>
+	</tr>
+	{% for item in balance %}
+		<tr>
+			<td>{{ item.gmtime }}</td>
+			<td>{{ item.value }}</td>
+		</tr>
+	{% endfor %}
+</table>
+
+{% endif %}
+
+{% endblock %}

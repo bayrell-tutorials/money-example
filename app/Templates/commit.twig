@@ -1,0 +1,34 @@
+{% extends "@app/layout.twig" %}
+
+{% block content %}
+
+<h1>Commit</h1>
+
+<a class="link" href="/">Back</a>
+<br/>
+<br/>
+
+<form class="web_form" method="POST" enctype="multipart/form-data">
+	
+	<table>
+		<tr>
+			<td class="web_form__tr_left">Account number:</td>
+			<td class="web_form__tr_right">
+				<input class="web_form__input" name="account" value="{{ account }}" />
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2" class="web_form__buttons">
+				<button>Commit</button>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2" class="web_form__result {{ form_result_class }}">
+				{{ implode("\n", form_result) | nl2br }}
+			</td>
+		</tr>
+	</table>
+	
+</form>
+
+{% endblock %}

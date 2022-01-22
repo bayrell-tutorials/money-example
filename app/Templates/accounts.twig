@@ -29,13 +29,15 @@
 		<th>User name</th>
 		<th>Balance</th>
 		<th></th>
+		<th></th>
 	</tr>
 	{% for account in accounts %}
 	<tr>
 		<td>{{ account.account_number }}</td>
 		<td>{{ account.user_name }}</td>
 		<td>{{ account.balance }}</td>
-		<td><a href="/accounts/{{ account.id }}">History</a></td>
+		<td><a href="/accounts/{{ account.id }}/history">History</a></td>
+		<td><a href="/accounts/{{ account.id }}/balance">Balance</a></td>
 	</tr>
 	{% endfor %}
 </table>

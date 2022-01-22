@@ -52,22 +52,17 @@ class UpdateBalanceAll extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
 	{
-		$db = app("db");
+		$cursor = Account::select()
+			->execute()
+		;
 		
-		$st = $db->query(
-			"select * from `" . Account::getTableName() . "` " .
-			"order by id asc"
-		);
-		
-		while ($row = $st->fetch(\PDO::FETCH_ASSOC))
+		while ($account = $cursor->fetch())
 		{
-			$output->writeln("Update account balance: " . $row["account_number"]);
-			
-			$account = Account::Instance($row);
+			$output->writeln("Update account balance: " . $account["account_number"]);
 			$account->updateBalance();
 		}
 		
-		$st->closeCursor();
+		$cursor->close();
 		
         return Command::SUCCESS;
     }

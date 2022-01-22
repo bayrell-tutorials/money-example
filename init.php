@@ -30,6 +30,7 @@ require_once __DIR__ . "/vendor/autoload.php";
 
 
 define("ROOT_PATH", __DIR__);
+define("COMMIT_BALANCE", 30*60);
 
 
 $defs = [
