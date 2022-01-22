@@ -63,25 +63,23 @@ class Account extends \TinyORM\Model
 	
 	
 	/**
-	 * Ïîèñê àêàóíòà ïî íîìåðó
+	 * ÐŸÐ¾Ð¸ÑÐº Ð°ÐºÐ°ÑƒÐ½Ñ‚Ð° Ð¿Ð¾ Ð½Ð¾Ð¼ÐµÑ€Ñƒ
 	 */
 	static function findByNumber($account_number)
 	{
-		$db = app("db");
-		
-		$account = $db->get_row
-		(
-			"select * from `accounts` where `account_number`=:account_number",
-			["account_number"=>$account_number]
-		);
-		
-		return $account ? static::Instance($account) : null;
+		return static::select()
+			->filter([
+				["account_number", "=", $account_number]
+			])
+			->limit(1)
+			->one()
+		;
 	}
 	
 	
 	
 	/**
-	 * Ïðîâåðÿåò åñòü ëè íà ñ÷åòó äîñòàòî÷íî äåíåã
+	 * ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÑ‚ ÐµÑÑ‚ÑŒ Ð»Ð¸ Ð½Ð° ÑÑ‡ÐµÑ‚Ñƒ Ð´Ð¾ÑÑ‚Ð°Ñ‚Ð¾Ñ‡Ð½Ð¾ Ð´ÐµÐ½ÐµÐ³
 	 */
 	function hasMoney($money)
 	{
@@ -99,77 +97,71 @@ class Account extends \TinyORM\Model
 	 */
 	function addMoney($money, $description)
 	{
-		$db = app("db");
-		
-		//$db->debug = true;
-		
 		$money = (double)$money;
 		
 		$account_id = $this["id"];
+		//var_dump($account_id);
 		
-		/* Äîáàâëÿåì èñòîðèþ */
+		/* Ð”Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ð¸ÑÑ‚Ð¾Ñ€Ð¸ÑŽ */
 		$history = new History();
-		$history->gmtime = gmdate("Y-m-d H:i:S");
+		$history->gmtime = gmdate("Y-m-d H:i:s");
 		$history->account_id = $account_id;
 		$history->money = $money;
 		$history->description = $description;
+		
+		//var_dump($history->toArray());
+		
 		$history->save();
 		
-		/* Ïðîâåðÿåì âñòàâëåíà ëè èñòîðèÿ */
+		/* ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼ Ð²ÑÑ‚Ð°Ð²Ð»ÐµÐ½Ð° Ð»Ð¸ Ð¸ÑÑ‚Ð¾Ñ€Ð¸Ñ */
 		$history->refresh();
-		if ($history->hasLoaded())
+		if (!$history->hasLoaded())
 		{
 			throw new MoneyException("History does not added", MoneyException::HISTORY_DOES_NOT_ADDED);
 		}
 		
-		return $tx;
+		return $history;
 	}
 	
 	
 	
 	/**
-	 * Îáíîâëåíèå áàëàíñà
+	 * ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð±Ð°Ð»Ð°Ð½ÑÐ°
 	 */
 	function updateBalance()
 	{
-		$db = app("db");
-		//$db->debug = true;
+		/* ÐŸÐ¾Ð»ÑƒÑ‡Ð°ÐµÐ¼ Ð·Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ Ð¿Ð¾ÑÐ»ÐµÐ´Ð½ÐµÐ³Ð¾ Ð±Ð°Ð»Ð°Ð½ÑÐ° Ð¸ Ð²Ñ€ÐµÐ¼Ñ ÐµÐ³Ð¾ ÑÐ¾Ð·Ð´Ð°Ð½Ð¸Ñ */
+		$balance = Balance::select()
+			->filter([
+				["account_id", "=", $this["id"]]
+			])
+			->orderBy("gmtime desc")
+			->limit(1)
+			->one()
+		;
 		
-		/* Ïîëó÷àåì çíà÷åíèå ïîñëåäíåãî áàëàíñà è âðåìÿ åãî ñîçäàíèÿ */
-		$balance = $db->get_row(
-			"select * from `" . Balance::getTableName() . "` " .
-			"where account_id = :account_id ".
-			"order by gmtime desc",
-			[
-				"account_id" => $this["id"],
-			]
-		);
-		
-		$balance = $balance ? Balance::Instance($balance) : null;
 		$balance_value = $balance ? $balance->value : 0;
 		$balance_gmtime = $balance ? $balance->gmtime : "1970-01-01 00:00:00";
 		
-		/* Ïîëó÷àåì èñòîðèþ âñåõ òðàíçàêöèé ñ ìîìåíòà ïîñëåäíåãî áàëàíñà */
-		$st = $db->query(
-			"select * from `" . History::getTableName() . "` " .
-			"where account_id = :account_id and gmtime >= :gmtime " .
-			"order by gmtime asc",
-			[
-				"account_id" => $this["id"],
-				"gmtime" => $balance_gmtime,
-			]
-		);
+		/* ÐŸÐ¾Ð»ÑƒÑ‡Ð°ÐµÐ¼ Ð¸ÑÑ‚Ð¾Ñ€Ð¸ÑŽ Ð²ÑÐµÑ… Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸Ð¹ Ñ Ð¼Ð¾Ð¼ÐµÐ½Ñ‚Ð° Ð¿Ð¾ÑÐ»ÐµÐ´Ð½ÐµÐ³Ð¾ Ð±Ð°Ð»Ð°Ð½ÑÐ° */
+		$cursor = History::select()
+			->filter([
+				["account_id", "=", $this["id"]],
+				["gmtime", ">=", $balance_gmtime]
+			])
+			->orderBy("gmtime asc")
+			->execute()
+		;
 		
-		/* Ïðîõîäèì ïî êàæäîé èñòîðèè, íà÷èíàÿ ñ balance_gmtime âêëþ÷èòåëüíî è èçìåíÿåì çíà÷åíèå áàëàíñà */
-		while ($row = $st->fetch(\PDO::FETCH_ASSOC))
+		/* ÐŸÑ€Ð¾Ñ…Ð¾Ð´Ð¸Ð¼ Ð¿Ð¾ ÐºÐ°Ð¶Ð´Ð¾Ð¹ Ð¸ÑÑ‚Ð¾Ñ€Ð¸Ð¸, Ð½Ð°Ñ‡Ð¸Ð½Ð°Ñ Ñ balance_gmtime Ð²ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ð¾ Ð¸ Ð¸Ð·Ð¼ÐµÐ½ÑÐµÐ¼ Ð·Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ Ð±Ð°Ð»Ð°Ð½ÑÐ° */
+		while ($history = $cursor->fetch())
 		{
-			$history = History::Instance($row);
 			$balance_value += $history->money;
 		}
 		
-		$st->closeCursor();
+		$cursor->close();
 		
-		/* Îáíîâëåíèå áàëàíñà */
+		/* ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð±Ð°Ð»Ð°Ð½ÑÐ° */
 		$this->balance = $balance_value;
 		$this->save();
 	}
@@ -177,37 +169,54 @@ class Account extends \TinyORM\Model
 	
 	
 	/**
-	 * Ïåðåâîä äåíåã ñ îäíîãî ñ÷åòà íà äðóãîé
+	 * ÐŸÐµÑ€ÐµÐ²Ð¾Ð´ Ð´ÐµÐ½ÐµÐ³ Ñ Ð¾Ð´Ð½Ð¾Ð³Ð¾ ÑÑ‡ÐµÑ‚Ð° Ð½Ð° Ð´Ñ€ÑƒÐ³Ð¾Ð¹
 	 */
 	static function transferMoney($account_from, $account_to, $money, $description)
 	{
-		$db = app("db");
+		$db = app("db")->get();
 		
+		/* ÐÐºÐºÐ°ÑƒÐ½Ñ‚ Ð¾Ñ‚ÐºÑƒÐ´Ð° Ð¿ÐµÑ€ÐµÑ‡Ð¸ÑÐ»ÑÐµÐ¼ */
 		$account_from = static::findByNumber($account_from);
 		if (!$account_from)
 		{
 			throw new MoneyException("Account from not found", MoneyException::ACCOUNT_NOT_FOUND);
 		}
 		
+		/* ÐÐºÐºÐ°ÑƒÐ½Ñ‚ ÐºÑƒÐ´Ð° Ð¿ÐµÑ€ÐµÑ‡Ð¸ÑÐ»ÑÐµÐ¼ */
 		$account_to = static::findByNumber($account_to);
 		if (!$account_to)
 		{
 			throw new MoneyException("Account to not found", MoneyException::ACCOUNT_NOT_FOUND);
 		}
 		
-		/* Ïðîâåðÿåì õâàòàåò ëè ñðåäñòâ íà ñ÷åòó $account_from */
+		/* ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼ Ñ…Ð²Ð°Ñ‚Ð°ÐµÑ‚ Ð»Ð¸ ÑÑ€ÐµÐ´ÑÑ‚Ð² Ð½Ð° ÑÑ‡ÐµÑ‚Ñƒ $account_from */
 		if (!$account_from->hasMoney($money))
 		{
 			throw new MoneyException("Account doesn't have enough money", MoneyException::DOES_NOT_HAVE_ENOUGH_MONEY);
 		}
 		
-		/* Íà÷àëî òðàíçàêöè */
+		/* ÐÐ°Ñ‡Ð°Ð»Ð¾ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸ */
 		$db->beginTransaction();
 		
-		$account_from->addMoney(-$money, $description);
-		$account_to->addMoney($money, $description);
+		try
+		{
+			$account_from->addMoney(-$money, $description);
+			$account_to->addMoney($money, $description);
+			
+			/* Ð•ÑÐ»Ð¸ Ð²ÑÐµ Ð¾Ðº, Ð·Ð°Ð²ÐµÑ€ÑˆÐ°ÐµÐ¼ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸Ð¸ */
+			$db->commit();
+		}
+		catch (Exception $e)
+		{
+			/* Ð•ÑÐ»Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐ°, Ð¾Ñ‚ÐºÐ°Ñ‚Ñ‹Ð²Ð°ÐµÐ¼ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸Ð¸ */
+			$db->rollback();
+			
+			/* Ð•ÑÐ»Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐ°, Ñ‚Ð¾ Ð²Ñ‹Ð·Ñ‹Ð²Ð°ÐµÐ¼ Ð¸ÑÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ */
+			throw $e;
+		}
 		
-		/* Åñëè âñå îê. çàâåðøàåì òðàíçàêöèè */
-		$db->commit();
+		/* ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð±Ð°Ð»Ð°Ð½ÑÐ° */
+		$account_from->updateBalance();
+		$account_to->updateBalance();
 	}
 }

@@ -1,6 +1,6 @@
 [submodule "tiny-php"]
 	path = tiny-php
-	url = https://github.com/bayrell/tiny-php
+	url = https://github.com/tiny-php/core
 [submodule "tiny-orm"]
 	path = tiny-orm
-	url = https://github.com/bayrell/tiny-orm
+	url = https://github.com/tiny-php/orm

@@ -49,5 +49,45 @@ class Instance extends \TinyPHP\App
 		$this->addConsoleCommand(\App\Console\UpdateBalance::class);
 		$this->addConsoleCommand(\App\Console\UpdateBalanceAll::class);
 	}
-
+	
+	
+	
+	/**
+	 * Console app created
+	 */
+	function consoleAppCreated()
+	{
+	}
+	
+	
+	
+	/**
+	 * 404 error
+	 */
+	function actionNotFound($container)
+	{
+		$container->render("@app/404.twig");
+		$container->response->setStatusCode(404);
+		return $container;
+	}
+	
+	
+	
+	/**
+	 * Method not allowed
+	 */
+	function actionNotAllowed($container)
+	{
+		$container->render("@app/405.twig");
+		$container->response->setStatusCode(405);
+		return $container;
+	}
+	
+	
+	
+	/**
+	 * Request before, after
+	 */
+	function request_before($container){}
+	function request_after($container){}
 }

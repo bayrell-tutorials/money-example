@@ -28,7 +28,7 @@
 namespace App\Routes;
 
 
-use App\Models\Money;
+use App\Models\Account;
 use App\Models\MoneyException;
 
 
@@ -80,7 +80,7 @@ class MoneyRoute extends \TinyPHP\Route
 	function actionAddMoney($container)
 	{
 		$account_number = $container->post("account_number");
-		$description = $container->post("description");
+		$description = trim($container->post("description"));
 		$money = (double)($container->post("money"));
 		
 		$data = [
@@ -102,25 +102,37 @@ class MoneyRoute extends \TinyPHP\Route
 					throw new MoneyException("Account not found", MoneyException::ACCOUNT_NOT_FOUND);
 				}
 				
-				$account->addMoney($money, $description);
+				/* Проверка на значение */
+				if ($money <= 0)
+				{
+					throw new MoneyException("Money should be more than zero", MoneyException::MONEY_LESS_ZERO);
+				}
+				
+				/* Описание */
+				if ($description == "")
+				{
+					throw new MoneyException("Description is empty", MoneyException::UNKNOWN);
+				}
+				
+				$history = $account->addMoney($money, $description);
 				$account->updateBalance();
 				
 				$data["form_result_class"] = "web_form__result--success";
-				$data["form_result"][] = "Transaction id: " . $tx["id"];
+				$data["form_result"][] = "Transaction id: " . $history["id"];
 				$data["form_result"][] = "Success";
+			}
+			catch (\PDOException $e)
+			{
+				$data["form_result_class"] = "web_form__result--error";
+				$data["form_result"][] = $e->getMessage();
 			}
 			catch (\App\Models\MoneyException $e)
 			{
 				$data["form_result_class"] = "web_form__result--error";
 				$data["form_result"][] = $e->getMessage();
-				
-				/* Rollback if error */
-				$db = app("db");
-				$db->rollBack();
 			}
 		}
 		
-		$container->setContext($data);
 		$container->render("@app/add_money.twig", $data);
 	}
 	
@@ -132,15 +144,19 @@ class MoneyRoute extends \TinyPHP\Route
 	 */
 	function actionTransferMoney($container)
 	{
-		$data = [
-			"form_result" => [],
-			"form_result_class" => "",
-		];
-		
 		$account_from = $container->post("account_from");
 		$account_to = $container->post("account_to");
 		$description = $container->post("description");
 		$money = (double)($container->post("money"));
+		
+		$data = [
+			"account_from" => $account_from,
+			"account_to" => $account_to,
+			"description" => $description,
+			"money" => $money,
+			"form_result" => [],
+			"form_result_class" => "",
+		];
 		
 		if ($container->isPost())
 		{
@@ -160,21 +176,20 @@ class MoneyRoute extends \TinyPHP\Route
 			{
 				try
 				{
-					$tx = Money::transferMoney($account_from, $account_to, $money, $description);
-					Money::updateBalance($account_from);
-					Money::updateBalance($account_to);
+					Account::transferMoney($account_from, $account_to, $money, $description);
 					
 					$data["form_result_class"] = "web_form__result--success";
 					$data["form_result"][] = "Success";
+				}
+				catch (\PDOException $e)
+				{
+					$data["form_result_class"] = "web_form__result--error";
+					$data["form_result"][] = $e->getMessage();
 				}
 				catch (\App\Models\MoneyException $e)
 				{
 					$data["form_result_class"] = "web_form__result--error";
 					$data["form_result"][] = $e->getMessage();
-					
-					/* Rollback if error */
-					$db = app("db");
-					$db->rollBack();
 				}
 			}
 		}

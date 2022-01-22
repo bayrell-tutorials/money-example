@@ -30,6 +30,7 @@ namespace App\Models;
 
 class MoneyException extends \Exception
 {
+	const UNKNOWN = -1000;
 	const ACCOUNT_NOT_FOUND = -1001;
 	const MONEY_LESS_ZERO = -1002;
 	const HISTORY_DOES_NOT_ADDED = -1003;

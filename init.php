@@ -36,7 +36,7 @@ $defs = [
 	/* App instance */
 	"app" => DI\create(\App\Instance::class),
 	"twig" => DI\create(\TinyPHP\Twig::class),
-	"db" => DI\create(\TinyORM\MySQLConnection::class),
+	"db" => DI\create(\TinyORM\ConnectionList::class),
 	
 	/* App settings */
 	"settings" => function()
@@ -49,20 +49,22 @@ $defs = [
 	"connectToDatabase" =>
 		function ()
 		{
-			$db = app("db");
-			$db->host = getenv("MYSQL_HOST");
-			$db->port = getenv("MYSQL_PORT"); if (!$db->port) $db->port = "3306";
-			$db->login = getenv("MYSQL_LOGIN");
-			$db->password = getenv("MYSQL_PASSWORD");
-			$db->database = getenv("MYSQL_DATABASE");		
-			$db->connect();
+			$conn = new \TinyORM\MySQLConnection();
+			$conn->host = getenv("MYSQL_HOST");
+			$conn->port = getenv("MYSQL_PORT"); if (!$conn->port) $conn->port = "3306";
+			$conn->login = getenv("MYSQL_LOGIN");
+			$conn->password = getenv("MYSQL_PASSWORD");
+			$conn->database = getenv("MYSQL_DATABASE");
+			$conn->connect();
 			
-			if (!$db->isConnected())
+			if (!$conn->isConnected())
 			{
-				echo "Error: " . $db->connect_error . "\n";
+				echo "Error: " . $conn->connect_error . "\n";
 				exit(1);
 			}
 			
+			$db = app("db");
+			$db->add("default", $conn);
 			return $db;
 		},
 	
