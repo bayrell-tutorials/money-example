@@ -29,6 +29,8 @@ namespace App\Routes;
 
 
 use App\Models\Account;
+use App\Models\History;
+use App\Models\User;
 use App\Models\MoneyException;
 
 
@@ -45,6 +47,20 @@ class MoneyRoute extends \TinyPHP\Route
 			['GET'],
 			'/',
 			[$this, "actionIndex"]
+		);
+		
+		$routes->addRoute
+		(
+			['GET'],
+			'/accounts',
+			[$this, "actionAccounts"]
+		);
+		
+		$routes->addRoute
+		(
+			['GET'],
+			'/accounts/{id}',
+			[$this, "actionAccountHistory"]
 		);
 		
 		$routes->addRoute
@@ -69,7 +85,69 @@ class MoneyRoute extends \TinyPHP\Route
 	 */
 	function actionIndex($container)
 	{
-		$container->render("@app/index.twig", []);
+		$container->render("@app/index.twig");
+	}
+	
+	
+	
+	/**
+	 * Action accounts
+	 */
+	function actionAccounts($container)
+	{
+		$accounts = Account::select()
+			->fields(["t.*", "u.name as user_name"])
+			->innerJoin(
+				"users", "u", "t.user_id=u.id"
+			)
+			->orderBy("user_name asc, account_number asc")
+			->all()
+		;
+		
+		$accounts = Account::listToArray( $accounts );
+		$container->addContext("accounts", $accounts);
+		
+		$container->render("@app/accounts.twig");
+	}
+	
+	
+	
+	/**
+	 * Action accounts
+	 */
+	function actionAccountHistory($container)
+	{
+		$id = $container->arg("id");
+		
+		$account = Account::getById($id);
+		$container->addContext("account", $account);
+		
+		if ($account)
+		{
+			$user = User::getById($account->user_id);
+			$container->addContext("user", $user);
+			
+			$history = History::select()
+				->fields(["t.*", "a.account_number as account_number", "u.name as user_name"])
+				->leftJoin(
+					"accounts", "a", "t.from_account_id=a.id"
+				)
+				->leftJoin(
+					"users", "u", "a.user_id=u.id"
+				)
+				->filter([
+					["t.account_id", "=", $id]
+				])
+				->orderBy("t.gmtime desc")
+				/*->debug(true)*/
+				->all()
+			;
+			
+			$history = History::listToArray( $history );
+			$container->addContext("history", $history);
+		}
+		
+		$container->render("@app/history.twig");
 	}
 	
 	

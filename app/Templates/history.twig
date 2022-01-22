@@ -1,0 +1,80 @@
+{% extends "@app/layout.twig" %}
+
+{% block content %}
+
+<h1>History</h1>
+
+<a class="link" href="/accounts">Back</a>
+<br/>
+<br/>
+
+{% if account is not defined %}
+	
+	Account not found
+
+{% else %}
+
+User: {{ user.name }}<br/>
+Account number: {{ account.account_number }}<br/>
+Balance: {{ account.balance }}<br/>
+<br/>
+<br/>
+
+<style>
+.accounts_table{
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+.accounts_table td, .accounts_table th{
+	border: 1px #ccc solid;
+	padding: 5px;
+	text-align: left;
+}
+.accounts_table tr th{
+	font-weight: bold;
+}
+</style>
+
+{% set debit_total = 0 %}
+{% set credit_total = 0 %}
+
+<table class="accounts_table">
+	<tr>
+		<th>Transaction ID</th>
+		<th>GMTime</th>
+		<th>Debit</th>
+		<th>Credit</th>
+		<th>Description</th>
+		<th>Correspondent</th>
+	</tr>
+	{% for item in history %}
+		{% if item.money != 0 %}
+		<tr>
+			<td>{{ item.id }}</td>
+			<td>{{ item.gmtime }}</td>
+			<td>{{ item.money < 0 ? -item.money : "0" }}</td>
+			<td>{{ item.money > 0 ? item.money : "0" }}</td>
+			<td>{{ item.description }}</td>
+			<td>
+				{% if item.account_number and item.user_name %}
+					{{ item.user_name }} [{{ item.account_number }}]
+				{% endif %}
+			</td>
+		</tr>
+		
+		{% if item.money < 0 %}{% set debit_total = debit_total - item.money %}{% endif %}
+		{% if item.money > 0 %}{% set credit_total = credit_total + item.money %}{% endif %}
+		
+		{% endif %}
+	{% endfor %}
+	<tr>
+		<td colspan='2'></td>
+		<td>{{ debit_total }}</td>
+		<td>{{ credit_total }}</td>
+		<td colspan='2'></td>
+	</tr>
+</table>
+
+{% endif %}
+
+{% endblock %}

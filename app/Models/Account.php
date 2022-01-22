@@ -63,6 +63,36 @@ class Account extends \TinyORM\Model
 	
 	
 	/**
+	 * To database
+	 */
+	static function to_database($data)
+	{
+		$data = parent::to_database($data);
+		
+		$data = \TinyPHP\Utils::object_intersect($data, [
+			"id",
+			"user_id",
+			"account_number",
+			"balance",
+		]);
+		
+		return $data;
+	}
+	
+	
+	
+	/**
+	 * From database
+	 */
+	static function from_database($data)
+	{
+		$data = parent::from_database($data);
+		return $data;
+	}
+	
+	
+	
+	/**
 	 * Поиск акаунта по номеру
 	 */
 	static function findByNumber($account_number)
@@ -95,7 +125,7 @@ class Account extends \TinyORM\Model
 	/**
 	 * Add money
 	 */
-	function addMoney($money, $description)
+	function addMoney($money, $description, $from_account_id = null)
 	{
 		$money = (double)$money;
 		
@@ -108,6 +138,7 @@ class Account extends \TinyORM\Model
 		$history->account_id = $account_id;
 		$history->money = $money;
 		$history->description = $description;
+		$history->from_account_id = $from_account_id;
 		
 		//var_dump($history->toArray());
 		
@@ -200,8 +231,8 @@ class Account extends \TinyORM\Model
 		
 		try
 		{
-			$account_from->addMoney(-$money, $description);
-			$account_to->addMoney($money, $description);
+			$account_from->addMoney(-$money, $description, $account_to->id);
+			$account_to->addMoney($money, $description, $account_from->id);
 			
 			/* Если все ок, завершаем транзакции */
 			$db->commit();

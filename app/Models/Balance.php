@@ -59,4 +59,34 @@ class Balance extends \TinyORM\Model
 	{
 		return true;
 	}
+	
+	
+	
+	/**
+	 * To database
+	 */
+	static function to_database($data)
+	{
+		$data = parent::to_database($data);
+		
+		$data = \TinyPHP\Utils::object_intersect($data, [
+			"id",
+			"gmtime",
+			"account_id",
+			"value",
+		]);
+		
+		return $data;
+	}
+	
+	
+	
+	/**
+	 * From database
+	 */
+	static function from_database($data)
+	{
+		$data = parent::from_database($data);
+		return $data;
+	}
 }

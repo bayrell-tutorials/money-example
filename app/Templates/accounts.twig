@@ -1,0 +1,43 @@
+{% extends "@app/layout.twig" %}
+
+{% block content %}
+
+<h1>Accounts</h1>
+
+<a class="link" href="/">Back</a>
+<br/>
+<br/>
+
+<style>
+.accounts_table{
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+.accounts_table td, .accounts_table th{
+	border: 1px #ccc solid;
+	padding: 5px;
+	text-align: left;
+}
+.accounts_table tr th{
+	font-weight: bold;
+}
+</style>
+
+<table class="accounts_table">
+	<tr>
+		<th>Account ID</th>
+		<th>User name</th>
+		<th>Balance</th>
+		<th></th>
+	</tr>
+	{% for account in accounts %}
+	<tr>
+		<td>{{ account.account_number }}</td>
+		<td>{{ account.user_name }}</td>
+		<td>{{ account.balance }}</td>
+		<td><a href="/accounts/{{ account.id }}">History</a></td>
+	</tr>
+	{% endfor %}
+</table>
+
+{% endblock %}

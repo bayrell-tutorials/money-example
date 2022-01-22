@@ -28,7 +28,7 @@
 namespace App\Models;
 
 
-class History extends \TinyORM\Model
+class User extends \TinyORM\Model
 {
 	
 	
@@ -37,7 +37,7 @@ class History extends \TinyORM\Model
 	 */
 	static function getTableName()
 	{
-		return "accounts_history";
+		return "users";
 	}
 	
 	
@@ -71,11 +71,7 @@ class History extends \TinyORM\Model
 		
 		$data = \TinyPHP\Utils::object_intersect($data, [
 			"id",
-			"gmtime",
-			"account_id",
-			"money",
-			"description",
-			"from_account_id",
+			"name",
 		]);
 		
 		return $data;
